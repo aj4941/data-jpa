@@ -34,6 +34,10 @@ public class Member {
         this.username = username;
     }
 
+    public Member(String username, int age) {
+        this.username = username;
+        this.age = age;
+    }
     // 연관관계 편의 메서드
     public void changeTeam(Team team) {
         this.team = team;
