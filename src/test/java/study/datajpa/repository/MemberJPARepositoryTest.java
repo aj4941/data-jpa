@@ -7,6 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.entity.Member;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -29,5 +31,23 @@ class MemberJPARepositoryTest {
 
         assertThat(findMember.getId()).isEqualTo(savedMember.getId());
         assertThat(findMember.getUsername()).isEqualTo(savedMember.getUsername());
+    }
+
+    @Test
+    public void paging() {
+        memberJPARepository.save(new Member("member1", 10));
+        memberJPARepository.save(new Member("member2", 10));
+        memberJPARepository.save(new Member("member3", 10));
+        memberJPARepository.save(new Member("member4", 10));
+        memberJPARepository.save(new Member("member5", 10));
+
+        int age = 10;
+        int offset = 0;
+        int limit = 3;
+        List<Member> members = memberJPARepository.findByPage(age, offset, limit);
+        long totalCount = memberJPARepository.totalCount(age);
+
+        assertThat(members.size()).isEqualTo(3);
+        assertThat(totalCount).isEqualTo(5);
     }
 }
