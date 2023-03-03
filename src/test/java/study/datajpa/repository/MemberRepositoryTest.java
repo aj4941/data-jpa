@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
+@Rollback(value = false)
 class MemberRepositoryTest {
 
     @Autowired MemberRepository memberRepository;
@@ -214,5 +215,38 @@ class MemberRepositoryTest {
         // 벌크 연산 이후에는 영속성 컨텍스트를 모두 초기화해야 함 (em.flush(), em.clear() 필요)
 
         assertThat(findMember.getAge()).isEqualTo(41);
+    }
+
+    @Test
+    public void findMemberLazy() {
+        Team teamA = new Team("teamA");
+        Team teamB = new Team("teamB");
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+        Member member1 = new Member("member1", 10, teamA);
+        Member member2 = new Member("member2", 10, teamB);
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        em.flush(); em.clear();
+
+        // 연관관계가 있는 것을 조인으로 한 번에 가져오고 이 값들을 모두 select 절에 넣어줌 (객체 그래프)
+        // 그냥 join을 하면 member 필드만 가져오는데 fetch join을 하면 team 필드까지 select 절에 넣어준다는 점이 특징
+        List<Member> members = memberRepository.findMemberFetchJoin();
+        // List<Member> members = memberRepository.findAll();
+        // (상위의 findAll은 N + 1에 걸리지만 EntityGraph가 적용된 메서드는 문제없이 페치조인처럼 호출)
+
+//        N + 1 문제 발생
+//        for (Member member : members) {
+//            System.out.println("member = " + member.getUsername());
+//            System.out.println("team = " + member.getTeam().getClass()); // proxy
+//            System.out.println("member.team = " + member.getTeam().getName()); // .getName() 하는 순간 실제 엔티티를 가져옴
+//        }
+
+        for (Member member : members) {
+            System.out.println("member = " + member.getUsername());
+            System.out.println("team = " + member.getTeam().getClass()); // 실제 엔티티가 나옴
+            System.out.println("member.team = " + member.getTeam().getName()); // 쿼리가 나가지 않음
+        }
     }
 }

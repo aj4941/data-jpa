@@ -3,6 +3,7 @@ package study.datajpa.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -33,6 +34,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     @Query("select m from Member m where m.username in :names")
     List<Member> findByNames(@Param("names") List<String> names);
 
+    Member findByUsername(String username);
+
     // 반환 타입을 유연하게 작성할 수 있음
     // 여기서 나온 List, Member, Optional은 시작을 대문자로 하고 임의로 적은 내용으로 메서드에 영향 X
 //    List<Member> findListByUsername(String username); // 컬렉션
@@ -53,5 +56,16 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     @Query("update Member m set m.age = m.age + 1 where m.age >= :age")
     int bulkAgePlus(@Param("age") int age);
 
-    Member findByUsername(String username);
+
+    @Query("select m from Member m left join fetch m.team")
+    List<Member> findMemberFetchJoin();
+
+    @Override // 상위에 있으므로 인터페이스 override 필요
+    @EntityGraph(attributePaths = ("team"))
+    @Query("select m from Member m") // 쿼리를 짠 후에 위에 엔티티 그래프를 추가해도 문제 없음
+    List<Member> findAll();
+
+    // username으로 회원 조회만 하는데 team 데이터도 필요한 경우 적용
+    @EntityGraph(attributePaths = ("team"))
+    List<Member> findEntityGraphByUsername(@Param("username") String username);
 }
