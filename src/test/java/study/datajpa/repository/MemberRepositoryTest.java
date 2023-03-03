@@ -197,11 +197,14 @@ class MemberRepositoryTest {
         memberRepository.save(new Member("member5", 40));
 
         // when : DB에 들어가지 않은 상태에서 벌크연산 진행
+        // 이때, jpql 쿼리 실행 전 쿼리와 관련있는 엔티티에 대한 flush()가 호출되어 save된 5개 데이터가 영속성 컨텍스트에서 DB로 반영
         int resultCount = memberRepository.bulkAgePlus(20);
+        // DB에 10, 19, 21, 22, 41이 있는 상황 (영속성 컨텍스트에는 10, 19, 20, 21, 40)
+
         Member findMember = memberRepository.findByUsername("member5");
 
-        // em.flush(); : update 쿼리 시에는 flush를 먼저하고 update 쿼리가 실행됨
-        em.clear();
+        // em.flush(); : 위에서 flush()가 실행되므로 넣지 않아도 OK, 넣더라도 영속성 컨텍스트에 변경감지가 일어나지 않았으므로 DB 반영 X
+        em.clear(); // clear를 하지 않으면 find 할 때 1차 캐시에서 값을 가져오므로 1차 캐시를 초기화해야 DB에 있는 값을 가져올 수 있음
 
         // then
         assertThat(resultCount).isEqualTo(3);
