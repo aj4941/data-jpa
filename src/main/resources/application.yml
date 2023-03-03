@@ -11,6 +11,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
-
+  data: # 글로벌 설정 방법
+    web:
+      pageable:
+        default-page-size: 10 # 기본 사이즈를 20에서 10으로 바꿈
+        max-page-size: 2000 # 최대 페이지 사이즈 제한
 logging.level:
   org.hibernate.SQL: debug
