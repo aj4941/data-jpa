@@ -4,6 +4,7 @@ import org.hibernate.boot.jaxb.hbm.spi.JaxbHbmMultiTenancyType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.graphql.GraphQlTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +35,9 @@ class MemberRepositoryTest {
 
     // 같은 트랜잭션이면 같은 엔티티 매니저를 사용하므로 memberRepository, teamRepository와 같이 사용
     @PersistenceContext EntityManager em;
+
+    // 가져와서 써도 문제가 되지 않음 (사용자 정의 리포지토리 대신 사용)
+    @Autowired MemberQueryRepository memberQueryRepository;
 
     @Test
     public void testMember() {
@@ -248,5 +252,48 @@ class MemberRepositoryTest {
             System.out.println("team = " + member.getTeam().getClass()); // 실제 엔티티가 나옴
             System.out.println("member.team = " + member.getTeam().getName()); // 쿼리가 나가지 않음
         }
+    }
+
+    @Test
+    public void quertHint() {
+        Member member = memberRepository.save(new Member("member1", 10));
+        em.flush(); // 영속성 컨텍스트에 member가 남고 DB에 반영
+        em.clear(); // 영속성 컨텍스트 초기화
+
+        // DB에서 가져오면서 1차 캐시에도 findMember이 들어감
+        // Member findMember = memberRepository.findById(member.getId()).get();
+        // 1차 캐시의 값을 변경하면 쓰기 지연 SQL에 이 정보가 들어감
+//        findMember.setUsername("member2");
+
+        // 변경 감지 (더티 체킹)가 발생하면서 DB에 update 쿼리 발생
+//        em.flush();
+
+        // 변경 감지 체크를 아예 하지 않음
+        // 값이 변경되더라도 스냅샷을 찍지 않으므로 1차 캐시에서 DB로 반영이 되지 않음
+        Member findMember = memberRepository.findReadOnlyByUsername(member.getUsername());
+        findMember.setUsername("member2");
+        em.flush();
+    }
+
+    @Test
+    public void callCustom() {
+        List<Member> result = memberRepository.findMemberCustom();
+    }
+
+    @Test
+    public void JpaEventBaseEntity() throws Exception {
+        Member member = new Member("member1");
+        memberRepository.save(member); // 실행 전에 @PrePersist 호출
+
+        Thread.sleep(100);
+        member.setUsername("member2");
+
+        em.flush(); // 실행 전에 @PreUpdate 호출
+        em.clear();
+
+        Member findMember = memberRepository.findById(member.getId()).get();
+
+        System.out.println("findMember.create = " + findMember.getCreatedDate());
+        System.out.println("findMember.update = " + findMember.getUpdatedDate());
     }
 }
