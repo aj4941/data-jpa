@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
@@ -144,6 +145,39 @@ class MemberRepositoryTest {
         assertThat(page.getTotalElements()).isEqualTo(5);
         assertThat(page.getNumber()).isEqualTo(0);
         assertThat(page.getTotalPages()).isEqualTo(2); // 3 + 2 -> 2페이지 (0번, 1번)
+        assertThat(page.isFirst()).isTrue(); // 현재 0페이지이므로 true
+        assertThat(page.hasNext()).isTrue(); // 다음 페이지가 있는지 확인
+    }
+
+    @Test
+    public void slicing() {
+        // given
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member2", 10));
+        memberRepository.save(new Member("member3", 10));
+        memberRepository.save(new Member("member4", 10));
+        memberRepository.save(new Member("member5", 10));
+
+        int age = 10;
+        // slice는 3개를 가져온다고 해도 1개를 더 가져옴 (limit 4)
+        // 다음 페이지가 있는지 없는지 알 수 있는 장점
+        PageRequest pageRequest = PageRequest.of(0, 3, Sort.Direction.DESC, "username");
+
+        // when
+        Slice<Member> page = memberRepository.findSliceByAge(age, pageRequest);
+
+        // Member -> MemberDto (페이지를 유지하면서 엔티티를 dto로 변환)
+        Slice<MemberDto> toMap = page.map(member -> new MemberDto(member.getId(), member.getUsername(), null));
+
+        // then
+        List<Member> content = page.getContent();
+
+        for (Member member : content) {
+            System.out.println("member = " + member);
+        }
+
+        assertThat(content.size()).isEqualTo(3);
+        assertThat(page.getNumber()).isEqualTo(0);
         assertThat(page.isFirst()).isTrue(); // 현재 0페이지이므로 true
         assertThat(page.hasNext()).isTrue(); // 다음 페이지가 있는지 확인
     }

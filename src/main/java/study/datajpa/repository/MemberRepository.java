@@ -2,6 +2,7 @@ package study.datajpa.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -40,6 +41,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     // 추가로 컬렉션을 조회하는데 아무 것도 선택되지 않는 경우 빈 컬렉션을 제공 (NULL이 아님)
 
     // Pageable 인터페이스를 넘긴다
+    @Query(value = "select m from Member m left join m.team t",
+            countQuery = "select count(m.username) from Member m") // 카운트 쿼리만 따로 분리하면 성능 향상
     Page<Member> findByAge(int age, Pageable pageable);
+    Slice<Member> findSliceByAge(int age, Pageable pageable);
 
 }
