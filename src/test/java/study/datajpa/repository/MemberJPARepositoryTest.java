@@ -4,6 +4,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.entity.Member;
 
@@ -14,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional // JPA의 모든 변경은 트랜잭션 안에서 일어나야 한다
+@Rollback(false)
 class MemberJPARepositoryTest {
 
     @Autowired
@@ -49,5 +51,21 @@ class MemberJPARepositoryTest {
 
         assertThat(members.size()).isEqualTo(3);
         assertThat(totalCount).isEqualTo(5);
+    }
+
+    @Test
+    public void bulkUpdate() {
+        // given
+        memberJPARepository.save(new Member("member1", 10));
+        memberJPARepository.save(new Member("member2", 19));
+        memberJPARepository.save(new Member("member3", 20));
+        memberJPARepository.save(new Member("member4", 21));
+        memberJPARepository.save(new Member("member5", 40));
+
+        // when
+        int resultCount = memberJPARepository.bulkAgePlus(20);
+
+        // then
+        assertThat(resultCount).isEqualTo(3);
     }
 }
